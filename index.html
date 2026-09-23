@@ -1101,13 +1101,13 @@ const isNarrowMobile =
 const SEQ_TIMING = {
   // Mobile result screens deliberately stay on screen longer so visitors
   // can read the explanation and watch the calculation unfold.
-  stage2: isNarrowMobile ? 10000 : 6000,
-  stage3AfterBars: isNarrowMobile ? 7000 : 4500,
-  stage4: isNarrowMobile ? 11000 : 7000,
-  stage5: isNarrowMobile ? 11000 : 7000,
-  stage6: isNarrowMobile ? 11000 : 7000,
-  stage7Speed: isNarrowMobile ? 220 : 95,
-  stage7Stagger: isNarrowMobile ? 360 : 150
+  stage2: isNarrowMobile ? 12000 : 6000,
+  stage3AfterBars: isNarrowMobile ? 9000 : 4500,
+  stage4: isNarrowMobile ? 12000 : 7000,
+  stage5: isNarrowMobile ? 12000 : 7000,
+  stage6: isNarrowMobile ? 12000 : 7000,
+  stage7Speed: isNarrowMobile ? 320 : 95,
+  stage7Stagger: isNarrowMobile ? 500 : 150
 };
 
 let sequenceTimers = [];
@@ -1245,9 +1245,9 @@ function showSeqStage2() {
   }
 
   ticks.forEach(function (t, i) {
-    seqTimeout(function () { t.classList.add("show"); }, 220 + i * 260);
+    seqTimeout(function () { t.classList.add("show"); }, 300 + i * (isNarrowMobile ? 420 : 260));
   });
-  seqTimeout(function () { monitor.classList.add("active"); }, 220 + ticks.length * 260 + 150);
+  seqTimeout(function () { monitor.classList.add("active"); }, 300 + ticks.length * (isNarrowMobile ? 420 : 260) + 200);
   runSeqAutoAdvance("stage2", prefersReducedMotion ? 1200 : SEQ_TIMING.stage2, showSeqStage3);
 }
 
@@ -1256,7 +1256,7 @@ function showSeqStage3() {
   spawnParticles("stage3Particles", 16, "hue-rotate(35deg) saturate(1.5)", 2100);
   const completeEl = document.getElementById("stage3Complete");
   completeEl.classList.remove("show");
-  renderSeqBlockBars("stage3Bars", isNarrowMobile ? 250 : 190, isNarrowMobile ? 550 : 420, function () {
+  renderSeqBlockBars("stage3Bars", isNarrowMobile ? 400 : 190, isNarrowMobile ? 750 : 420, function () {
     seqTimeout(function () { completeEl.classList.add("show"); }, 150);
     runSeqAutoAdvance("stage3", prefersReducedMotion ? 900 : SEQ_TIMING.stage3AfterBars, showSeqStage4);
   });
