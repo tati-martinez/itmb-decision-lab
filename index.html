@@ -1099,13 +1099,15 @@ const isNarrowMobile =
 
 // Mobile screens need longer reading time. The desktop timings are preserved.
 const SEQ_TIMING = {
-  stage2: isNarrowMobile ? 8500 : 6000,
-  stage3AfterBars: isNarrowMobile ? 5500 : 4500,
-  stage4: isNarrowMobile ? 9000 : 7000,
-  stage5: isNarrowMobile ? 9000 : 7000,
-  stage6: isNarrowMobile ? 9000 : 7000,
-  stage7Speed: isNarrowMobile ? 170 : 95,
-  stage7Stagger: isNarrowMobile ? 280 : 150
+  // Mobile result screens deliberately stay on screen longer so visitors
+  // can read the explanation and watch the calculation unfold.
+  stage2: isNarrowMobile ? 10000 : 6000,
+  stage3AfterBars: isNarrowMobile ? 7000 : 4500,
+  stage4: isNarrowMobile ? 11000 : 7000,
+  stage5: isNarrowMobile ? 11000 : 7000,
+  stage6: isNarrowMobile ? 11000 : 7000,
+  stage7Speed: isNarrowMobile ? 220 : 95,
+  stage7Stagger: isNarrowMobile ? 360 : 150
 };
 
 let sequenceTimers = [];
@@ -1254,7 +1256,7 @@ function showSeqStage3() {
   spawnParticles("stage3Particles", 16, "hue-rotate(35deg) saturate(1.5)", 2100);
   const completeEl = document.getElementById("stage3Complete");
   completeEl.classList.remove("show");
-  renderSeqBlockBars("stage3Bars", 190, 420, function () {
+  renderSeqBlockBars("stage3Bars", isNarrowMobile ? 250 : 190, isNarrowMobile ? 550 : 420, function () {
     seqTimeout(function () { completeEl.classList.add("show"); }, 150);
     runSeqAutoAdvance("stage3", prefersReducedMotion ? 900 : SEQ_TIMING.stage3AfterBars, showSeqStage4);
   });
