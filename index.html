@@ -379,16 +379,53 @@ line{color:#ffd52e;font-size:clamp(18px,2.6vw,34px);font-weight:900;letter-spaci
 #stage7 .seqBtn{position:static;left:auto;bottom:auto;transform:none !important;flex:0 0 auto;align-self:center;margin-top:auto;padding:clamp(10px,1vw,14px) clamp(18px,1.8vw,26px)}
 #stage7 .seqBtn.seqBtnReady:hover{transform:translateY(-2px) !important}
 @media(max-width:700px){
- #stage7 .seqScreen{padding:6% 4% 3%}
+ /* Keep the complete Full Profile inside the square mobile panel.
+    The two explanatory boxes stay side-by-side so the footer message
+    and CONTINUE button remain visible without scrolling or overlap. */
+ #stage7 .seqScreen{
+   padding:5% 4% 2%;
+   overflow:hidden;
+ }
  #stage7 .seqHeadline{margin-bottom:8px}
- #stage7 .seqBars.compact{gap:7px}
- #stage7 .seqBarRow{font-size:14px;grid-template-columns:1.6em minmax(4.8em,5.6em) minmax(65px,1fr) 3.2em 0;column-gap:5px}
- #stage7 .seqSummaryRow{flex-direction:column;gap:6px;margin-top:10px}
- #stage7 .seqSummaryCol{padding:6px 8px}
- #stage7 .seqSummaryLabel{font-size:11px;margin-bottom:2px}
- #stage7 .seqSummaryCol p{font-size:13px;line-height:1.25}
- #stage7 .seqFooterTag{font-size:11px;line-height:1.25;margin-top:7px;padding:5px 9px}
- #stage7 .seqBtn{margin-top:10px;padding:10px 18px;font-size:13px}
+ #stage7 .seqBars.compact{gap:6px}
+ #stage7 .seqBarRow{
+   font-size:13px;
+   grid-template-columns:1.6em minmax(4.7em,5.5em) minmax(65px,1fr) 3.2em 0;
+   column-gap:5px;
+ }
+ #stage7 .seqSummaryRow{
+   flex-direction:row;
+   align-items:stretch;
+   gap:6px;
+   margin-top:9px;
+ }
+ #stage7 .seqSummaryCol{
+   flex:1 1 0;
+   width:0;
+   min-width:0;
+   padding:6px 7px;
+ }
+ #stage7 .seqSummaryLabel{
+   font-size:12px;
+   line-height:1.15;
+   margin-bottom:3px;
+ }
+ #stage7 .seqSummaryCol p{
+   font-size:14px;
+   line-height:1.25;
+   margin:0;
+ }
+ #stage7 .seqFooterTag{
+   font-size:12px;
+   line-height:1.2;
+   margin-top:7px;
+   padding:5px 9px;
+ }
+ #stage7 .seqBtn{
+   margin-top:8px;
+   padding:9px 18px;
+   font-size:13px;
+ }
 }
 @media(max-width:480px){
  #finish .finalContent{padding:6% 6% 18%}
@@ -521,6 +558,27 @@ line{color:#ffd52e;font-size:clamp(18px,2.6vw,34px);font-weight:900;letter-spaci
   }
   #stage7 .seqFooterTag{
     font-size:clamp(12px,3.2vw,16px);
+  }
+}
+
+
+@media(max-width:700px){
+  #stage7 .seqBtn{
+    position:static !important;
+    left:auto !important;
+    bottom:auto !important;
+    transform:none !important;
+    align-self:center;
+    flex:0 0 auto;
+    opacity:0;
+    pointer-events:none;
+  }
+  #stage7 .seqBtn.seqBtnReady{
+    opacity:1;
+    pointer-events:auto;
+  }
+  #stage7 .seqBtn.seqBtnReady:hover{
+    transform:translateY(-2px) !important;
   }
 }
 
