@@ -1093,23 +1093,51 @@ const prefersReducedMotion =
   typeof window.matchMedia === "function" &&
   window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-const isNarrowMobile =
-  typeof window.matchMedia === "function" &&
-  window.matchMedia("(max-width: 700px)").matches;
+// Mobile = the same breakpoint the CSS uses for the mobile layout
+// (max-width: 700px). Checked live when each stage runs, so the timing
+// always matches the layout actually on screen.
+const SEQ_MOBILE_QUERY =
+  typeof window.matchMedia === "function" ? window.matchMedia("(max-width: 700px)") : null;
+function isMobileSequence() {
+  return !!(SEQ_MOBILE_QUERY && SEQ_MOBILE_QUERY.matches);
+}
 
-// Mobile screens need longer reading time. The desktop timings are preserved.
+// DESKTOP timings (unchanged from v20).
 const SEQ_TIMING = {
-  // MOBILE: deliberately slow, readable result sequence.
-  // The visitor should see the calculation begin, watch it build,
-  // and have several seconds to read every subsequent result screen.
-  stage2: isNarrowMobile ? 18000 : 6000,
-  stage3AfterBars: isNarrowMobile ? 9000 : 4500,
-  stage4: isNarrowMobile ? 16000 : 7000,
-  stage5: isNarrowMobile ? 16000 : 7000,
-  stage6: isNarrowMobile ? 16000 : 7000,
-  stage7Speed: isNarrowMobile ? 650 : 95,
-  stage7Stagger: isNarrowMobile ? 1000 : 150
+  stage2: 6000,
+  stage3AfterBars: 4500,
+  stage4: 7000,
+  stage5: 7000,
+  stage6: 7000,
+  stage7Speed: 95,
+  stage7Stagger: 150
 };
+
+// MOBILE timings. On mobile each results screen advances ONLY on its own
+// timer (tap-to-skip is disabled, see runSeqAutoAdvance), so these values
+// are the actual on-screen durations. Reading time is kept even when the
+// phone has "Reduce Motion" switched on.
+const MOBILE_SEQ_TIMING = {
+  tickFirst: 700,         // first "DECISION 0x" check appears
+  tickInterval: 1100,     // gap between each check
+  monitorDelay: 500,      // analysis monitor activates after the last check
+  stage2: 9000,           // total time on ANALYSING YOUR DECISIONS
+  stage3BlockSpeed: 200,  // one bar block every 200ms
+  stage3RowPause: 700,    // pause before the next dimension starts
+  stage3AfterBars: 6000,  // completed result + "ANALYSIS COMPLETE" hold
+  stage4: 10000,          // profile reveal
+  stage5: 10000,          // tech superpower
+  stage6: 10000,          // watch out for
+  stage7BlockSpeed: 150,  // full-profile recap bars (screen waits for CONTINUE)
+  stage7RowPause: 450
+};
+
+// Hold time for an auto-advancing screen. Desktop values/behaviour are
+// exactly as before; mobile always uses the mobile reading time.
+function seqHold(key, reducedMotionDesktopMs) {
+  if (isMobileSequence()) return MOBILE_SEQ_TIMING[key];
+  return prefersReducedMotion ? reducedMotionDesktopMs : SEQ_TIMING[key];
+}
 
 let sequenceTimers = [];
 function seqTimeout(fn, ms) {
@@ -1182,13 +1210,22 @@ function animateBlockBar(row, dim, speedMs, rowDelay, onRowDone) {
 }
 
 // Shared by Stage 3 (reveal) and Stage 7 (full profile).
-function renderSeqBlockBars(containerId, speedMs, rowStagger, onAllDone) {
+function renderSeqBlockBars(containerId, speedMs, rowStagger, onAllDone, rowPauseMs) {
   const container = document.getElementById(containerId);
   container.innerHTML = "";
   let doneCount = 0;
+  // rowPauseMs (mobile only): each dimension starts only after the previous
+  // one has finished filling, plus a pause. Without it rows overlap (desktop).
+  const sequential = typeof rowPauseMs === "number";
+  const pct = sequential ? computeTechLeaderPercentages() : null;
+  let cursor = 150;
   DIMENSIONS.forEach(function (dim, i) {
     const row = buildBarRow(container, dim);
-    const rowDelay = i * rowStagger + 150;
+    let rowDelay = i * rowStagger + 150;
+    if (sequential) {
+      rowDelay = cursor;
+      cursor += Math.round((pct[dim] / 100) * BLOCK_COUNT) * speedMs + 150 + rowPauseMs;
+    }
     animateBlockBar(row, dim, speedMs, rowDelay, function () {
       doneCount++;
       if (doneCount === DIMENSIONS.length && onAllDone) onAllDone();
@@ -1212,7 +1249,9 @@ function runSeqAutoAdvance(screenId, ms, nextFn) {
     if (e.target.closest("button, a")) return;
     advance();
   }
-  el.addEventListener("click", clickHandler);
+  // Desktop keeps the presenter's click-to-skip. On mobile, stray taps were
+  // skipping screens instantly, so the timer is the only thing that advances.
+  if (!isMobileSequence()) el.addEventListener("click", clickHandler);
   seqTimeout(advance, ms);
 }
 
@@ -1241,14 +1280,25 @@ function showSeqStage2() {
   if (prefersReducedMotion) {
     ticks.forEach(function (t) { t.classList.add("show"); });
     monitor.classList.add("active");
-    runSeqAutoAdvance("stage2", 900, showSeqStage3);
+    runSeqAutoAdvance("stage2", seqHold("stage2", 900), showSeqStage3);
+    return;
+  }
+
+  if (isMobileSequence()) {
+    const M = MOBILE_SEQ_TIMING;
+    ticks.forEach(function (t, i) {
+      seqTimeout(function () { t.classList.add("show"); }, M.tickFirst + i * M.tickInterval);
+    });
+    seqTimeout(function () { monitor.classList.add("active"); },
+      M.tickFirst + (ticks.length - 1) * M.tickInterval + M.monitorDelay);
+    runSeqAutoAdvance("stage2", M.stage2, showSeqStage3);
     return;
   }
 
   ticks.forEach(function (t, i) {
-    seqTimeout(function () { t.classList.add("show"); }, 300 + i * (isNarrowMobile ? 800 : 260));
+    seqTimeout(function () { t.classList.add("show"); }, 220 + i * 260);
   });
-  seqTimeout(function () { monitor.classList.add("active"); }, 300 + ticks.length * (isNarrowMobile ? 800 : 260) + 200);
+  seqTimeout(function () { monitor.classList.add("active"); }, 220 + ticks.length * 260 + 150);
   runSeqAutoAdvance("stage2", prefersReducedMotion ? 1200 : SEQ_TIMING.stage2, showSeqStage3);
 }
 
@@ -1257,10 +1307,16 @@ function showSeqStage3() {
   spawnParticles("stage3Particles", 16, "hue-rotate(35deg) saturate(1.5)", 2100);
   const completeEl = document.getElementById("stage3Complete");
   completeEl.classList.remove("show");
-  renderSeqBlockBars("stage3Bars", isNarrowMobile ? 700 : 190, isNarrowMobile ? 1200 : 420, function () {
+  const onStage3BarsDone = function () {
     seqTimeout(function () { completeEl.classList.add("show"); }, 150);
-    runSeqAutoAdvance("stage3", prefersReducedMotion ? 900 : SEQ_TIMING.stage3AfterBars, showSeqStage4);
-  });
+    runSeqAutoAdvance("stage3", seqHold("stage3AfterBars", 900), showSeqStage4);
+  };
+  if (isMobileSequence()) {
+    renderSeqBlockBars("stage3Bars", MOBILE_SEQ_TIMING.stage3BlockSpeed, 0, onStage3BarsDone,
+      MOBILE_SEQ_TIMING.stage3RowPause);
+  } else {
+    renderSeqBlockBars("stage3Bars", 190, 420, onStage3BarsDone);
+  }
 }
 
 function showSeqStage4() {
@@ -1284,7 +1340,7 @@ function showSeqStage4() {
   nameEl.style.textShadow = "0 0 18px " + data.color + ", 0 0 42px " + data.color;
   taglineEl.textContent = data.tagline;
 
-  runSeqAutoAdvance("stage4", prefersReducedMotion ? 1200 : SEQ_TIMING.stage4, showSeqStage5);
+  runSeqAutoAdvance("stage4", seqHold("stage4", 1200), showSeqStage5);
 }
 
 function showSeqStage5() {
@@ -1302,7 +1358,7 @@ function showSeqStage5() {
 
   // Deliberately longer than the earlier transitions — the visitor needs
   // time to actually read this before it's whisked away.
-  runSeqAutoAdvance("stage5", prefersReducedMotion ? 1200 : SEQ_TIMING.stage5, showSeqStage6);
+  runSeqAutoAdvance("stage5", seqHold("stage5", 1200), showSeqStage6);
 }
 
 function showSeqStage6() {
@@ -1322,7 +1378,7 @@ function showSeqStage6() {
 
   document.getElementById("stage6Text").textContent = data.weakness;
 
-  runSeqAutoAdvance("stage6", prefersReducedMotion ? 1200 : SEQ_TIMING.stage6, showSeqStage7);
+  runSeqAutoAdvance("stage6", seqHold("stage6", 1200), showSeqStage7);
 }
 
 function showSeqStage7() {
@@ -1338,9 +1394,13 @@ function showSeqStage7() {
 
   // No auto-advance here — Stage 7 is user-controlled. CONTINUE only
   // becomes active once every bar has finished animating.
-  renderSeqBlockBars("stage7Bars", SEQ_TIMING.stage7Speed, SEQ_TIMING.stage7Stagger, function () {
-    btn.classList.add("seqBtnReady");
-  });
+  const onStage7BarsDone = function () { btn.classList.add("seqBtnReady"); };
+  if (isMobileSequence()) {
+    renderSeqBlockBars("stage7Bars", MOBILE_SEQ_TIMING.stage7BlockSpeed, 0, onStage7BarsDone,
+      MOBILE_SEQ_TIMING.stage7RowPause);
+  } else {
+    renderSeqBlockBars("stage7Bars", SEQ_TIMING.stage7Speed, SEQ_TIMING.stage7Stagger, onStage7BarsDone);
+  }
 }
 
 function showSeqStage8() {
