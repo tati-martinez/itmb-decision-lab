@@ -1132,10 +1132,16 @@ line{color:#ffd52e;font-size:clamp(18px,2.6vw,34px);font-weight:900;letter-spaci
     overflow:hidden;
   }
 
-  /* Scale the square pixel-art artwork to the phone height.
-     object-fit:cover preserves proportions, so the art is not stretched.
-     A small amount of the extreme left/right edge is cropped on a
-     portrait phone, rather than leaving a large black area underneath. */
+  /*
+     MOBILE GAMEPLAY CANVAS
+     The original artwork is square and contains the questions/buttons.
+     Cropping it to fill a portrait phone cuts off the left/right choices.
+     Instead, keep the complete artwork at its natural square ratio, centre
+     it vertically, and fill the remaining portrait space with a darkened,
+     enlarged copy of the same artwork. This keeps every baked-in element
+     visible while making every screen feel like one continuous portrait
+     experience.
+  */
   #start .art,
   #level1 .art,
   #level2 .art,
@@ -1144,9 +1150,64 @@ line{color:#ffd52e;font-size:clamp(18px,2.6vw,34px);font-weight:900;letter-spaci
   #level5 .art{
     width:100%;
     height:100%;
-    object-fit:cover;
+    object-fit:contain;
     object-position:center center;
+    z-index:1;
   }
+
+  #start .mobileArtBackdrop,
+  #level1 .mobileArtBackdrop,
+  #level2 .mobileArtBackdrop,
+  #level3 .mobileArtBackdrop,
+  #level4 .mobileArtBackdrop,
+  #level5 .mobileArtBackdrop{
+    position:absolute;
+    inset:-6%;
+    width:112%;
+    height:112%;
+    object-fit:cover;
+    object-position:center;
+    filter:blur(12px) brightness(.38) saturate(.9);
+    transform:scale(1.05);
+    image-rendering:pixelated;
+    z-index:0;
+    pointer-events:none;
+  }
+
+  /* The transparent click targets must follow the centred square artwork,
+     not the full portrait viewport. The artwork is 100vw × 100vw and is
+     centred vertically, so its top edge is 50vh - 50vw. */
+  #start .start{
+    left:25vw;
+    top:calc(50% + 4vw);
+    width:50vw;
+    height:14vw;
+  }
+
+  #level1 .a{left:6.25vw;top:calc(50% + 19.14vw);width:43.36vw;height:11.72vw}
+  #level1 .b{left:50.59vw;top:calc(50% + 19.14vw);width:42.97vw;height:11.72vw}
+  #level1 .c{left:6.25vw;top:calc(50% + 31.45vw);width:43.36vw;height:13.09vw}
+  #level1 .d{left:50.59vw;top:calc(50% + 31.45vw);width:43.16vw;height:13.09vw}
+
+  #level2 .a{left:6.84vw;top:calc(50% + 22.07vw);width:43.36vw;height:11.52vw}
+  #level2 .b{left:51.17vw;top:calc(50% + 22.07vw);width:43.55vw;height:11.33vw}
+  #level2 .c{left:6.84vw;top:calc(50% + 33.98vw);width:43.55vw;height:12.11vw}
+  #level2 .d{left:51.17vw;top:calc(50% + 33.98vw);width:43.75vw;height:12.11vw}
+
+  #level3 .a{left:6.84vw;top:calc(50% + 21.09vw);width:42.38vw;height:10.55vw}
+  #level3 .b{left:50.39vw;top:calc(50% + 21.29vw);width:41.60vw;height:10.35vw}
+  #level3 .c{left:6.64vw;top:calc(50% + 31.84vw);width:42.58vw;height:11.52vw}
+  #level3 .d{left:50vw;top:calc(50% + 31.84vw);width:41.99vw;height:11.52vw}
+
+  #level4 .a{left:5.86vw;top:calc(50% + 21.88vw);width:42.97vw;height:10.16vw}
+  #level4 .b{left:49.80vw;top:calc(50% + 21.88vw);width:43.75vw;height:10.16vw}
+  #level4 .c{left:5.86vw;top:calc(50% + 32.42vw);width:42.97vw;height:11.91vw}
+  #level4 .d{left:49.80vw;top:calc(50% + 32.42vw);width:43.95vw;height:11.91vw}
+
+  #level5 .a{left:8.98vw;top:calc(50% + 21.68vw);width:41.60vw;height:10.74vw}
+  #level5 .b{left:51.37vw;top:calc(50% + 21.88vw);width:42.97vw;height:10.55vw}
+  #level5 .c{left:8.98vw;top:calc(50% + 32.81vw);width:41.60vw;height:11.72vw}
+  #level5 .d{left:51.37vw;top:calc(50% + 32.81vw);width:42.97vw;height:11.72vw}
 
   /* Feedback is HTML rather than baked artwork, so let its existing
      panel use the full portrait canvas as well. */
@@ -1289,6 +1350,30 @@ line{color:#ffd52e;font-size:clamp(18px,2.6vw,34px);font-weight:900;letter-spaci
     <button class="finalPlay" onclick="restart()">PLAY AGAIN</button>
   </div>
 </section></div>
+
+<script>
+/* Mobile portrait presentation for the original square gameplay artwork. */
+(function setupMobileGameplayPresentation(){
+  const ids = ["start","level1","level2","level3","level4","level5"];
+  function addBackdrops(){
+    if (!window.matchMedia("(max-width:700px)").matches) return;
+    ids.forEach(function(id){
+      const screen = document.getElementById(id);
+      if (!screen || screen.querySelector(".mobileArtBackdrop")) return;
+      const art = screen.querySelector(".art");
+      if (!art) return;
+      const bg = art.cloneNode(false);
+      bg.className = "mobileArtBackdrop";
+      bg.removeAttribute("alt");
+      bg.setAttribute("aria-hidden","true");
+      bg.style.opacity = "1";
+      screen.insertBefore(bg, screen.firstChild);
+    });
+  }
+  addBackdrops();
+  window.addEventListener("resize", addBackdrops, {passive:true});
+})();
+</script>
 <script>
 const answers = [
 ["A — FIRE THE EMPLOYEE","You have taken action, but the underlying process may still be vulnerable. The important next question is how the confidential information reached the AI tool in the first place.","PEOPLE • AI GOVERNANCE • DATA SECURITY • RISK"],
